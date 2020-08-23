@@ -97,6 +97,8 @@ long eval(mpc_ast_t *t) {
 
   // Store the third child in 'x'
   long x = eval(t->children[2]);
+
+  // TODO: impl (node | branch | leaces)_number_check for negating num
   // If operator '-' have only one argument, negates it
   if (t->children_num == 4 && strcmp(op, "-") == 0) {
     return x * -1;
