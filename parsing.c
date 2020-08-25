@@ -203,6 +203,7 @@ lval *lval_pop(lval *v, int i) {
   // Decrease the count of items in the list
   v->count--;
 
+<<<<<<< HEAD
   // Reallocate the memory user
   v->cell = realloc(v->cell, sizeof(lval *) * v->count);
   return x;
@@ -219,6 +220,15 @@ lval *lval_eval(lval *v) {
   // Evaluate Sexpressions
   if (v->type == LVAL_SEXPR) {
     return lval_eval_sexpr(v);
+=======
+  // Store the third child in 'x'
+  long x = eval(t->children[2]);
+
+  // TODO: impl (node | branch | leaces)_number_check for negating num
+  // If operator '-' have only one argument, negates it
+  if (t->children_num == 4 && strcmp(op, "-") == 0) {
+    return x * -1;
+>>>>>>> 884036b98c413abdb1ce2239905042b8deb64b38
   }
   // All other lval type remain the same
   return v;
