@@ -572,7 +572,6 @@ lval *builtin_list(lenv *e, lval *a) {
   return a;
 }
 
-// TODO: make (cons) return q-expr;
 lval *builtin_cons(lenv *e, lval *a) {
   LASSERT_NUM("cons", a, 2);
   LASSERT_TYPE("cons", a, 1, LVAL_QEXPR);
@@ -595,6 +594,7 @@ lval *builtin_len(lenv *e, lval *a) {
   return lval_num(a->cell[0]->count);
 }
 
+// TODO: make (init) return q-expr;
 lval *builtin_init(lenv *e, lval *a) {
   // Check Error Conditions
   LASSERT_NUM("init", a, 1);
