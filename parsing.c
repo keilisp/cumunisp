@@ -26,6 +26,14 @@ void add_history(char *unused) {}
 #endif
 
 // Forward Declarations
+mpc_parser_t *Number;
+mpc_parser_t *Symbol;
+mpc_parser_t *String;
+mpc_parser_t *Comment;
+mpc_parser_t *Sexpr;
+mpc_parser_t *Qexpr;
+mpc_parser_t *Expr;
+mpc_parser_t *Cumunisp;
 
 struct lval;
 struct lenv;
@@ -159,6 +167,10 @@ void lval_del(lval *v) {
   case LVAL_SYM:
     free(v->sym);
     break;
+  // Free string memory for string type
+  case LVAL_STR:
+    free(v->str);
+    break;
 
     // If Qexpr or Sexpr then delete all elems inside
   case LVAL_QEXPR:
@@ -166,16 +178,11 @@ void lval_del(lval *v) {
     for (int i = 0; i < v->count; i++) {
       lval_del(v->cell[i]);
     }
-
-  // Free string memory for string type
-  case LVAL_STR:
-    free(v->str);
-    break;
-
     // Then also free the memory allocated to conatin the pointers
     free(v->cell);
     break;
   }
+
   free(v);
 }
 lval *lval_read_num(mpc_ast_t *t) {
@@ -215,6 +222,9 @@ lval *lval_read(mpc_ast_t *t) {
   if (strstr(t->tag, "symbol")) {
     return lval_sym(t->contents);
   }
+  if (strstr(t->tag, "string")) {
+    return lval_read_str(t);
+  }
 
   // If root (>) or sexpr then crete empty list
   lval *x = NULL;
@@ -227,10 +237,6 @@ lval *lval_read(mpc_ast_t *t) {
 
   if (strstr(t->tag, "qexpr")) {
     x = lval_qexpr();
-  }
-
-  if (strstr(t->tag, "string")) {
-    return lval_read_str(t);
   }
 
   // Fill this list with any valid wxpression contained within
@@ -248,6 +254,9 @@ lval *lval_read(mpc_ast_t *t) {
       continue;
     }
     if (strcmp(t->children[i]->tag, "regex") == 0) {
+      continue;
+    }
+    if (strcmp(t->children[i]->tag, "comment") == 0) {
       continue;
     }
     x = lval_add(x, lval_read(t->children[i]));
@@ -270,6 +279,19 @@ void lval_expr_print(lval *v, char open, char close) {
     }
   }
   putchar(close);
+}
+
+// Print string
+void lval_print_str(lval *v) {
+  // Make a copy of the string
+  char *escaped = malloc(strlen(v->str) + 1);
+  strcpy(escaped, v->str);
+  // Pass it through the escape function
+  escaped = mpcf_escape(escaped);
+  // Print it between " characters
+  printf("\"%s\"", escaped);
+  // Free the copied string
+  free(escaped);
 }
 
 // Print an "lval"
@@ -299,6 +321,9 @@ void lval_print(lval *v) {
     break;
   case LVAL_SYM:
     printf("%s", v->sym);
+    break;
+  case LVAL_STR:
+    lval_print_str(v);
     break;
   case LVAL_SEXPR:
     lval_expr_print(v, '(', ')');
@@ -478,19 +503,6 @@ void lenf_def(lenv *e, lval *k, lval *v) {
 void lval_println(lval *v) {
   lval_print(v);
   putchar('\n');
-}
-
-// Print string
-void lval_print_str(lval *v) {
-  // Make a copy of the string
-  char *escaped = malloc(strlen(v->str) + 1);
-  strcpy(escaped, v->str);
-  // Pass it through the escape function
-  escaped = mpcf_escape(escaped);
-  // Print it between " characters
-  printf("\"%s\"", escaped);
-  // Free the copied string
-  free(escaped);
 }
 
 lval *lval_pop(lval *v, int i) {
@@ -902,6 +914,74 @@ lval *builtin_if(lenv *e, lval *a) {
   return x;
 }
 
+lval *builtin_load(lenv *e, lval *a) {
+  LASSERT_NUM("load", a, 1);
+  LASSERT_TYPE("load", a, 0, LVAL_STR);
+
+  // Parse File given by astring name
+  mpc_result_t r;
+  if (mpc_parse_contents(a->cell[0]->str, Cumunisp, &r)) {
+    // Read contents
+    lval *expr = lval_read(r.output);
+    mpc_ast_delete(r.output);
+
+    // Evaluate each Expression
+    while (expr->count) {
+      lval *x = lval_eval(e, lval_pop(expr, 0));
+      // If evaluation leads to error print it
+      if (x->type == LVAL_ERR) {
+        lval_println(x);
+      }
+      lval_del(x);
+    }
+
+    // Delete expressions and arguments
+    lval_del(expr);
+    lval_del(a);
+
+    // Return empty list
+    return lval_sexpr();
+  } else {
+    // Get Parse Error as String
+    char *err_msg = mpc_err_string(r.error);
+    mpc_err_delete(r.error);
+
+    // Create new error message using it
+    lval *err = lval_err("Could not load Library %s", err_msg);
+    free(err_msg);
+    lval_del(a);
+
+    // Cleanup and return error
+    return err;
+  }
+}
+
+lval *builtin_print(lenv *e, lval *a) {
+  // Print each argument followed by a space
+  for (int i = 0; i < a->count; i++) {
+    lval_print(a->cell[i]);
+    putchar(' ');
+  }
+
+  // Print a newline and delete arguments
+  putchar('\n');
+  lval_del(a);
+
+  return lval_sexpr();
+}
+
+lval *builtin_err(lenv *e, lval *a) {
+  LASSERT_NUM("error", a, 1);
+  LASSERT_TYPE("error", a, 0, LVAL_STR);
+
+  // Construct Error from first argument
+  lval *err = lval_err(a->cell[0]->str);
+
+  // Delete arguments and return
+  lval_del(a);
+  return err;
+}
+
 lval *builtin_add(lenv *e, lval *a) { return builtin_op(e, a, "+"); }
 lval *builtin_sub(lenv *e, lval *a) { return builtin_op(e, a, "-"); }
 lval *builtin_mul(lenv *e, lval *a) { return builtin_op(e, a, "*"); }
@@ -964,6 +1044,11 @@ void lenv_add_builtins(lenv *e) {
   lenv_add_builtin(e, "<", builtin_lt);
   lenv_add_builtin(e, "<=", builtin_le);
   lenv_add_builtin(e, "if", builtin_if);
+
+  // String Functions
+  lenv_add_builtin(e, "load", builtin_load);
+  lenv_add_builtin(e, "err", builtin_err);
+  lenv_add_builtin(e, "print", builtin_print);
 }
 
 lval *lval_call(lenv *e, lval *f, lval *a) {
@@ -1063,14 +1148,16 @@ lval *lval_eval_sexpr(lenv *e, lval *v) {
   return result;
 }
 
-int main() {
+int main(int argc, char **argv) {
   // Create some Parsers
-  mpc_parser_t *Number = mpc_new("number");
-  mpc_parser_t *Symbol = mpc_new("symbol");
-  mpc_parser_t *Sexpr = mpc_new("sexpr");
-  mpc_parser_t *Qexpr = mpc_new("qexpr");
-  mpc_parser_t *Expr = mpc_new("expr");
-  mpc_parser_t *Cumunisp = mpc_new("cumunisp");
+  Number = mpc_new("number");
+  Symbol = mpc_new("symbol");
+  String = mpc_new("string");
+  Comment = mpc_new("comment");
+  Sexpr = mpc_new("sexpr");
+  Qexpr = mpc_new("qexpr");
+  Expr = mpc_new("expr");
+  Cumunisp = mpc_new("cumunisp");
 
   // Define Parsers
   mpca_lang(MPCA_LANG_DEFAULT,
@@ -1078,12 +1165,14 @@ int main() {
       number   : /-?[0-9]+(\\.[0-9]*)?/ ;                             \
       symbol   : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/ ;  \
       string   : /\"(\\\\.|[^\"])*\"/ ; \
+      comment  : /;[^\\r\\n]*/ ; \
       sexpr    : '(' <expr>* ')' ; \
       qexpr    : '{' <expr>* '}' ; \
-      expr     : <number> | <symbol> | <sexpr> | <qexpr> ;  \
+      expr     : <number> | <symbol> | <string> \
+               | <comment>| <sexpr> | <qexpr>;                           \
       cumunisp    : /^/ <expr>* /$/ ;             \
     ",
-            Number, Symbol, Sexpr, Qexpr, Expr, Cumunisp);
+            Number, Symbol, String, Comment, Sexpr, Qexpr, Expr, Cumunisp);
 
   /* symbol   : '+' | '-' | '*' | '/' | '%' | '^'     \ */
   /*          | \"add\" | \"sub\" | \"mul\" | \"div\" | \"rem\" | \"pow\" \
@@ -1093,38 +1182,63 @@ int main() {
    * \"len\" | \"init\" ;  \ */
 
   // Print Version and Exit Information
-  puts("Cumunisp Version 0.0.0.0.1");
-  puts("Press Ctrl+c to Exit\n");
 
   lenv *e = lenv_new();
   lenv_add_builtins(e);
 
-  while (1) {
-    // Output prompt
-    char *input = readline("cumunisp> ");
-    // Add input to history
-    add_history(input);
+  // Interactive prompt
+  if (argc == 1) {
 
-    // Attempt to Parse the user Input
-    mpc_result_t r;
-    if (mpc_parse("<stdin>", input, Cumunisp, &r)) {
+    puts("Cumunisp Version 0.0.0.0.1");
+    puts("Press Ctrl+c to Exit\n");
 
-      lval *result = lval_eval(e, lval_read(r.output));
-      lval_println(result);
-      lval_del(result);
-      mpc_ast_delete(r.output);
-    } else {
-      // Otherwise print the Error
-      mpc_err_print(r.error);
-      mpc_err_delete(r.error);
+    while (1) {
+      // Output prompt
+      char *input = readline("cumunisp> ");
+      // Add input to history
+      add_history(input);
+
+      // Attempt to Parse the user Input
+      mpc_result_t r;
+      if (mpc_parse("<stdin>", input, Cumunisp, &r)) {
+
+        lval *x = lval_eval(e, lval_read(r.output));
+        lval_println(x);
+        lval_del(x);
+
+        mpc_ast_delete(r.output);
+      } else {
+        // Otherwise print the Error
+        mpc_err_print(r.error);
+        mpc_err_delete(r.error);
+      }
+
+      // Free retrieved input
+      free(input);
     }
+  }
 
-    // Free retrieved input
-    free(input);
+  // Supplied with list of files
+  if (argc >= 2) {
+    // Loop ovber each supplied filename (starting from 1)
+    for (int i = 1; i < argc; i++) {
+      // Argument list with a single argument, the filename
+      lval *args = lval_add(lval_sexpr(), lval_str(argv[i]));
+
+      // Pass to builtin load and get the result
+      lval *x = builtin_load(e, args);
+
+      // If the result is an error be sure to print it
+      if (x->type == LVAL_ERR) {
+        lval_println(x);
+      }
+      lval_del(x);
+    }
   }
 
   lenv_del(e);
   // Undefine and delete Parsers
-  mpc_cleanup(4, Number, Symbol, Sexpr, Qexpr, Expr, Cumunisp);
+  mpc_cleanup(8, Number, Symbol, String, Comment, Sexpr, Qexpr, Expr, Cumunisp);
+
   return 0;
 }
