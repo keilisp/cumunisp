@@ -594,18 +594,19 @@ lval *builtin_len(lenv *e, lval *a) {
   return lval_num(a->cell[0]->count);
 }
 
-// TODO: make (init) return q-expr;
 lval *builtin_init(lenv *e, lval *a) {
   // Check Error Conditions
   LASSERT_NUM("init", a, 1);
   LASSERT_TYPE("init", a, 0, LVAL_QEXPR);
   LASSERT_NOT_EMPTY("init", a, 0);
 
-  // Get the length of qexpr
-  lval *x = builtin_len(e, a);
-  int len = (int)x->num;
-  // Take only last elem
-  lval *v = lval_take(a->cell[0], len - 1);
+  // Take first argument
+  lval *v = lval_take(a, 0);
+
+  // Delete all elems that are not init and return
+  while (v->count > 1) {
+    lval_del(lval_pop(v, 0));
+  }
 
   return v;
 }
