@@ -219,11 +219,11 @@ lval *lval_read(mpc_ast_t *t) {
   if (strstr(t->tag, "number")) {
     return lval_read_num(t);
   }
-  if (strstr(t->tag, "symbol")) {
-    return lval_sym(t->contents);
-  }
   if (strstr(t->tag, "string")) {
     return lval_read_str(t);
+  }
+  if (strstr(t->tag, "symbol")) {
+    return lval_sym(t->contents);
   }
 
   // If root (>) or sexpr then crete empty list
@@ -256,7 +256,7 @@ lval *lval_read(mpc_ast_t *t) {
     if (strcmp(t->children[i]->tag, "regex") == 0) {
       continue;
     }
-    if (strcmp(t->children[i]->tag, "comment") == 0) {
+    if (strstr(t->children[i]->tag, "comment")) {
       continue;
     }
     x = lval_add(x, lval_read(t->children[i]));
@@ -918,17 +918,18 @@ lval *builtin_load(lenv *e, lval *a) {
   LASSERT_NUM("load", a, 1);
   LASSERT_TYPE("load", a, 0, LVAL_STR);
 
-  // Parse File given by astring name
+  // Parse File given by string name
   mpc_result_t r;
   if (mpc_parse_contents(a->cell[0]->str, Cumunisp, &r)) {
+
     // Read contents
     lval *expr = lval_read(r.output);
     mpc_ast_delete(r.output);
 
-    // Evaluate each Expression
+    /* Evaluate each Expression */
     while (expr->count) {
       lval *x = lval_eval(e, lval_pop(expr, 0));
-      // If evaluation leads to error print it
+      // If Evaluation leads to error print it
       if (x->type == LVAL_ERR) {
         lval_println(x);
       }
@@ -941,6 +942,7 @@ lval *builtin_load(lenv *e, lval *a) {
 
     // Return empty list
     return lval_sexpr();
+
   } else {
     // Get Parse Error as String
     char *err_msg = mpc_err_string(r.error);
@@ -1220,8 +1222,10 @@ int main(int argc, char **argv) {
 
   // Supplied with list of files
   if (argc >= 2) {
-    // Loop ovber each supplied filename (starting from 1)
+
+    // loop over each supplied filename (starting from 1)
     for (int i = 1; i < argc; i++) {
+
       // Argument list with a single argument, the filename
       lval *args = lval_add(lval_sexpr(), lval_str(argv[i]));
 
@@ -1235,7 +1239,6 @@ int main(int argc, char **argv) {
       lval_del(x);
     }
   }
-
   lenv_del(e);
   // Undefine and delete Parsers
   mpc_cleanup(8, Number, Symbol, String, Comment, Sexpr, Qexpr, Expr, Cumunisp);
