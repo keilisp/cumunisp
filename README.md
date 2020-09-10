@@ -13,7 +13,7 @@ cd *your-folder*
 git clone https://github.com/mediocreeee/cumunisp.git
 ```
 
-Compile the programm with make
+Compile the program with make
 
 ```sh
 make
