@@ -131,8 +131,8 @@ Returns the maximum number from the queue
     {print "Not Equal"})
 
 ; Output:
-"Equal"
-()
+>"Equal"
+>()
 ```
 
 ### Equal
@@ -264,7 +264,7 @@ This function returns a list(q-expression) created from its arguments
 ```common-lisp
 (list 1 2 3 4)
 ; Output:
-{1 2 3 4}
+> {1 2 3 4}
 ```
 
 ### Head
@@ -274,7 +274,7 @@ This function returns the first member of the list
 ```common-lisp
 (head (list 1 2 3 4))
 ; Output:
-{1}
+> {1}
 ```
 
 ### Tail
@@ -284,7 +284,7 @@ This function returns a list without the first member
 ```common-lisp
 (tail (list 1 2 3 4))
 ; Output:
-{2 3 4}
+> {2 3 4}
 ```
 
 ### Init
@@ -357,7 +357,7 @@ This function prints each argument separated by a space. It return the empty exp
 (print "Some Useful Info"
 ; Output:
 > "Some Useful Info"
-()
+>()
 ```
 
 ### Err
