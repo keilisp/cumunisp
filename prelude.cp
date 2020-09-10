@@ -42,39 +42,17 @@
 (fun {and x y} {* x y})
 
 
-;;; Numeric Functions
-
-; Minimum of Arguments
-;(fun {min & xs} {
-;  if (== (tail xs) nil) {fst xs}
-;    {do 
-;      (= {rest} (unpack min (tail xs)))
-;      (= {item} (fst xs))
-;      (if (< item rest) {item} {rest})
-;    }
-;})
-
-;; Maximum of Arguments
-;(fun {max & xs} {
-;  if (== (tail xs) nil) {fst xs}
-;    {do 
-;      (= {rest} (unpack max (tail xs)))
-;      (= {item} (fst xs))
-;      (if (> item rest) {item} {rest})
-;    }  
-;})
-
 ;;; Conditional Functions
 
 (fun {select & cs} {
   if (== cs nil)
-    {error "No Selection Found"}
+    {err "No Selection Found"}
     {if (fst (fst cs)) {snd (fst cs)} {unpack select (tail cs)}}
 })
 
 (fun {case x & cs} {
   if (== cs nil)
-    {error "No Case Found"}
+    {err "No Case Found"}
     {if (== x (fst (fst cs))) {snd (fst cs)} {
 	  unpack case (join (list x) (tail cs))}}
 })
@@ -82,25 +60,12 @@
 (def {otherwise} true)
 
 
-;;; Misc Functions
-
-(fun {flip f a b} {f b a})
-(fun {ghost & xs} {eval xs})
-(fun {comp f g x} {f (g x)})
-
 ;;; List Functions
 
 ; First, Second, or Third Item in List
 (fun {fst l} { eval (head l) })
 (fun {snd l} { eval (head (tail l)) })
 (fun {trd l} { eval (head (tail (tail l))) })
-
-; List Length
-;(fun {len l} {
-;  if (== l nil)
-;    {0}
-;    {+ 1 (len (tail l))}
-;})
 
 ; Nth item in List
 (fun {nth n l} {
@@ -124,13 +89,6 @@
   if (== l nil)
     {nil}
     {join (if (f (fst l)) {head l} {nil}) (filter f (tail l))}
-})
-
-; Return all of list but last element
-(fun {init l} {
-  if (== (tail l) nil)
-    {nil}
-    {join (head l) (init (tail l))}
 })
 
 ; Reverse List
@@ -198,7 +156,7 @@
 ; Find element in list of pairs
 (fun {lookup x l} {
   if (== l nil)
-    {error "No Element Found"}
+    {err "No Element Found"}
     {do
       (= {key} (fst (fst l)))
       (= {val} (snd (fst l)))

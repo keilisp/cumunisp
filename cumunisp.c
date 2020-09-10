@@ -1,3 +1,4 @@
+// gcc -std=c99 -g -Wall cumunisp.c mpc.c -ledit -lm -o cumunisp
 // TODO: split blocks of code
 #include "mpc.h"
 #include <stdio.h>
@@ -988,8 +989,8 @@ lval *builtin_add(lenv *e, lval *a) { return builtin_op(e, a, "+"); }
 lval *builtin_sub(lenv *e, lval *a) { return builtin_op(e, a, "-"); }
 lval *builtin_mul(lenv *e, lval *a) { return builtin_op(e, a, "*"); }
 lval *builtin_div(lenv *e, lval *a) { return builtin_op(e, a, "/"); }
-lval *builtin_rem(lenv *e, lval *a) { return builtin_op(e, a, "rem"); }
-lval *builtin_pow(lenv *e, lval *a) { return builtin_op(e, a, "pow"); }
+lval *builtin_rem(lenv *e, lval *a) { return builtin_op(e, a, "%"); }
+lval *builtin_pow(lenv *e, lval *a) { return builtin_op(e, a, "^"); }
 lval *builtin_min(lenv *e, lval *a) { return builtin_op(e, a, "min"); }
 lval *builtin_max(lenv *e, lval *a) { return builtin_op(e, a, "max"); }
 lval *builtin_gt(lenv *e, lval *a) { return builtin_ord(e, a, ">"); };
@@ -1033,7 +1034,9 @@ void lenv_add_builtins(lenv *e) {
   lenv_add_builtin(e, "mul", builtin_mul);
   lenv_add_builtin(e, "/", builtin_div);
   lenv_add_builtin(e, "div", builtin_div);
+  lenv_add_builtin(e, "%", builtin_rem);
   lenv_add_builtin(e, "rem", builtin_rem);
+  lenv_add_builtin(e, "^", builtin_pow);
   lenv_add_builtin(e, "pow", builtin_pow);
   lenv_add_builtin(e, "min", builtin_min);
   lenv_add_builtin(e, "max", builtin_max);
@@ -1165,7 +1168,7 @@ int main(int argc, char **argv) {
   mpca_lang(MPCA_LANG_DEFAULT,
             "                                                     \
       number   : /-?[0-9]+(\\.[0-9]*)?/ ;                             \
-      symbol   : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/ ;  \
+      symbol   : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&%^]+/ ;  \
       string   : /\"(\\\\.|[^\"])*\"/ ; \
       comment  : /;[^\\r\\n]*/ ; \
       sexpr    : '(' <expr>* ')' ; \
@@ -1176,22 +1179,14 @@ int main(int argc, char **argv) {
     ",
             Number, Symbol, String, Comment, Sexpr, Qexpr, Expr, Cumunisp);
 
-  /* symbol   : '+' | '-' | '*' | '/' | '%' | '^'     \ */
-  /*          | \"add\" | \"sub\" | \"mul\" | \"div\" | \"rem\" | \"pow\" \
-   */
-  /*          | \"max\" | \"min\"   \ */
-  /*          | \"list\"| \"head\"| \"tail\"| \"join\"| \"eval\"| \"cons\" |
-   * \"len\" | \"init\" ;  \ */
-
-  // Print Version and Exit Information
-
   lenv *e = lenv_new();
   lenv_add_builtins(e);
 
   // Interactive prompt
   if (argc == 1) {
 
-    puts("Cumunisp Version 0.0.0.0.1");
+    // Print Version and Exit Information
+    puts("Cumunisp Version 0.0.0.0.3");
     puts("Press Ctrl+c to Exit\n");
 
     while (1) {
