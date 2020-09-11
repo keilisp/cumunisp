@@ -319,10 +319,10 @@ This function joins two lists into one
 
 ### Cons
 
-This function takes the first argument(of any type) and appends it to the list from the seconf argument
+This function takes the first argument(of any type) and appends it to the list from the second argument
 
 ```common-lisp
-(cons 1 (list 2 3 4))
+(cons 4 (list 1 2 3))
 ; Output:
 > {1 2 3 4}
 ```

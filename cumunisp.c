@@ -742,12 +742,10 @@ lval *builtin_cons(lenv *e, lval *a) {
   LASSERT_NUM("cons", a, 2);
   LASSERT_TYPE("cons", a, 1, LVAL_QEXPR);
 
-  // Create list of the entire expr
-  lval *x = builtin_list(e, a);
   // Pop the qexpr
   lval *y = lval_pop(a, 1);
   // Append cell[0] to the qexpr
-  lval *list = lval_join(x, y);
+  lval *list = lval_join(y, a);
 
   return list;
 }
