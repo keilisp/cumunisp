@@ -1,5 +1,3 @@
-// gcc -std=c99 -g -Wall cumunisp.c mpc.c -ledit -lm -o cumunisp
-// TODO: split blocks of code
 #include "mpc.h"
 #include <stdio.h>
 #include <stdlib.h>
